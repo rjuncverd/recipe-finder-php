@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: Recipe Finder API
+  version: 1.0.0
+  description: |
+    API REST para buscar recetas por nombre utilizando Spoonacular.
+    El servicio devuelve el primer resultado que coincide con la consulta y expone la información principal de la receta.
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /recipes:
+    get:
+      summary: Buscar una receta por nombre
+      description: |
+        Busca una receta por nombre usando Spoonacular y devuelve el primer resultado disponible.
+        Si la búsqueda devuelve varios resultados, se devuelve el primero.
+      operationId: searchRecipeByName
+      tags:
+        - Recipes
+      parameters:
+        - in: query
+          name: name
+          required: true
+          description: Nombre de la receta a buscar.
+          schema:
+            type: string
+            example: pasta
+      responses:
+        '200':
+          description: Receta encontrada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeResponse'
+        '400':
+          description: El parámetro name es obligatorio o está vacío.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: La API key de Spoonacular no está configurada o es inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Método HTTP no permitido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno al consultar Spoonacular o al procesar la respuesta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    RecipeResponse:
+      type: object
+      required:
+        - name
+        - prepTimeMinutes
+        - servings
+        - ingredients
+        - instructions
+        - imageUrl
+      properties:
+        name:
+          type: string
+          example: Ratatouille Pasta
+        prepTimeMinutes:
+          type: integer
+          nullable: true
+          example: 45
+        servings:
+          type: integer
+          nullable: true
+          example: 4
+        ingredients:
+          type: array
+          items:
+            type: string
+          example:
+            - 1 large Yellow Onion, diced
+            - Olive oil for sauteing
+        instructions:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example:
+            - Saute the yellow onion in a large skillet.
+            - Add the vegetables and simmer.
+        imageUrl:
+          type: string
+          format: uri
+          example: https://img.spoonacular.com/recipes/657933-556x370.jpg
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: The query parameter "name" is required.
