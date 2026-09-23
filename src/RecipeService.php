@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/SpoonacularClient.php';
+require_once __DIR__ . '/RecipeRepositoryInterface.php';
 
 final class RecipeService
 {
-    public function __construct(private SpoonacularClient $client)
+    public function __construct(private RecipeRepositoryInterface $repository)
     {
     }
 
     public function findByName(string $queryName): array
     {
-        $recipe = $this->client->searchRecipeByName($queryName);
+        $recipe = $this->repository->searchRecipeByName($queryName);
 
         if ($recipe === null) {
             throw new RuntimeException('No recipe found for the provided name.');

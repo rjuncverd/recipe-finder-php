@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-final class SpoonacularClient
+require_once __DIR__ . '/RecipeRepositoryInterface.php';
+
+final class SpoonacularClient implements RecipeRepositoryInterface
 {
     public function __construct(private string $apiKey)
     {
