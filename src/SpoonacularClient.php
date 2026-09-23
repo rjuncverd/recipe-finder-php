@@ -3,17 +3,28 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/RecipeRepositoryInterface.php';
+require_once __DIR__ . '/FileCache.php';
 
 final class SpoonacularClient implements RecipeRepositoryInterface
 {
-    public function __construct(private string $apiKey)
-    {
+    public function __construct(
+        private string $apiKey,
+        private ?FileCache $cache = null,
+        private int $cacheTtlSeconds = 3600
+    ) {
+        $this->cache ??= new FileCache();
     }
 
     public function searchRecipeByName(string $name): ?array
     {
         if ($this->apiKey === '') {
             throw new InvalidArgumentException('SPOONACULAR_API_KEY is required. Set the environment variable before calling the endpoint.');
+        }
+
+        $cacheKey = 'recipe:' . strtolower(trim($name));
+        $cached = $this->cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
         }
 
         $searchUrl = 'https://api.spoonacular.com/recipes/complexSearch?' . http_build_query([
@@ -30,12 +41,11 @@ final class SpoonacularClient implements RecipeRepositoryInterface
             return null;
         }
 
-        // NOTA: Si la búsqueda devuelve múltiples resultados, devolver el primero de ellos.
-        // Aunque con number => 1 ya solo esperamos un resultado, verificamos que exista.
         $firstResult = $data['results'][0] ?? null;
         $recipeId = $firstResult['id'] ?? null;
 
         if (!is_int($recipeId) && !ctype_digit((string) $recipeId)) {
+            $this->cache->set($cacheKey, $firstResult, $this->cacheTtlSeconds);
             return $firstResult;
         }
 
@@ -45,8 +55,11 @@ final class SpoonacularClient implements RecipeRepositoryInterface
         ]);
 
         $detail = $this->fetchJson($detailUrl);
+        $result = is_array($detail) ? $detail : $firstResult;
 
-        return is_array($detail) ? $detail : $firstResult;
+        $this->cache->set($cacheKey, $result, $this->cacheTtlSeconds);
+
+        return $result;
     }
 
     private function fetchJson(string $url): array
